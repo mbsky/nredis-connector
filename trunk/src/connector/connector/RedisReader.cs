@@ -12,36 +12,32 @@
 
     public class RedisReader
     {
-        #region Constants and Fields
+        const int ErrorMessage = 0x2d;
+        const int SingleLineReply = 0x2b;
+        const int BulkData = 0x24;
+        const int MultiBulk = 0x2a;
+        const int IntegerReply = 0x3a;
 
         private readonly BinaryReader _redisStream;
-
-        #endregion
-
-        #region Constructors and Destructors
 
         public RedisReader(BinaryReader redisStream)
         {
             this._redisStream = redisStream;
         }
 
-        #endregion
-
-        #region Public Methods
+        public bool IsError()
+        {
+            return _redisStream.PeekChar() == ErrorMessage;
+        }
 
         public IEnumerable<byte[]> ReadAny()
         {
             int firstByte = _redisStream.PeekChar();
-            const int ErrorMessage = 0x2d;
-            const int SingleLineReply = 0x2b;
-            const int BulkData = 0x24;
-            const int MultiBulk = 0x2a;
-            const int IntegerReply = 0x3a;
-
+            
             switch (firstByte)
             {
                 case SingleLineReply:
-                    return new List<byte[]> { this.ReadLine() };
+                    return new List<byte[]> { Encoding.ASCII.GetBytes(this.ReadLine()) };
                 case BulkData:
                     return new List<byte[]> { this.ReadBulk() };
                 case MultiBulk:
@@ -49,7 +45,7 @@
                 case IntegerReply:
                     return new List<byte[]> { BitConverter.GetBytes(this.ReadInteger()) };
                 default:
-                    throw new Exception(Encoding.ASCII.GetString(this.ReadLineInner()));
+                    throw new RedisException(Encoding.ASCII.GetString(this.ReadLineInner()));
             }
         }
 
@@ -75,10 +71,10 @@
             return bulkLength;
         }
 
-        public byte[] ReadLine()
+        public string ReadLine()
         {
             _redisStream.ReadByte();
-            return this.ReadLineInner();
+            return Encoding.ASCII.GetString( this.ReadLineInner());
         }
 
         protected byte[] ReadLineInner()
@@ -138,6 +134,13 @@
             return list;
         }
 
-        #endregion
+    }
+
+    public class RedisException : Exception
+    {
+        public RedisException(string message)
+            : base(message)
+        {
+        }
     }
 }

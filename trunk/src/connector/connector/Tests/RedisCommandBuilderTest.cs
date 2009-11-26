@@ -17,7 +17,7 @@ namespace Connector.Tests
             builder.AddArgument("foo");
             builder.AddArgument("barbaz");
 
-            string str = this.GetString(builder);
+            string str = GetString(builder);
 
             Assert.That(str, Is.EqualTo("*3\r\n$3\r\nset\r\n$3\r\nfoo\r\n$6\r\nbarbaz\r\n"));
             
@@ -32,13 +32,13 @@ namespace Connector.Tests
             builder.AddArgument(Encoding.ASCII.GetBytes("foo"));
             builder.AddArgument(Encoding.ASCII.GetBytes("barbaz"));
 
-            string str = this.GetString(builder);
+            string str = GetString(builder);
 
             Assert.That(str, Is.EqualTo("*3\r\n$3\r\nset\r\n$3\r\nfoo\r\n$6\r\nbarbaz\r\n"));
             
         }
 
-        private string GetString(RedisCommandBuilder builder)
+        private static string GetString(RedisCommandBuilder builder)
         {
             var ms = new MemoryStream();
             builder.FlushCommandTo(new BinaryWriter(ms));
