@@ -10,6 +10,8 @@ namespace Connector
         const int BulkData = 0x24;
         const int MultiBulk = 0x2a;
 
+        private static readonly byte[] EndLine = new byte[] { 0x0d, 0x0a };
+
         private string _command;
 
         private List<byte[]> _arguments = new List<byte[]>();
@@ -33,6 +35,7 @@ namespace Connector
         {
             var bulkSize = _arguments.Count + 1;
             WriteInt(redisStream, MultiBulk, bulkSize);
+            this.WriteBulk(redisStream, Encoding.ASCII.GetBytes(_command));
             foreach(var arg in _arguments)
             {
                 this.WriteBulk(redisStream, arg);
@@ -45,11 +48,13 @@ namespace Connector
         {
             writer.Write(prefix);
             writer.Write(Encoding.ASCII.GetBytes(value.ToString()));
+            writer.Write(EndLine);
         }
         private void WriteBulk(BinaryWriter writer, byte[] bytes)
         {
             WriteInt(writer, BulkData, bytes.Length);
             writer.Write(bytes);
+            writer.Write(EndLine);
         }
     }
 }
