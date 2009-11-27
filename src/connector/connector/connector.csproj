@@ -52,6 +52,7 @@
     <Compile Include="RedisConnection.cs" />
     <Compile Include="RedisReader.cs" />
     <Compile Include="CommandFactory.cs" />
+    <Compile Include="Tests\LoadTest.cs" />
     <Compile Include="Tests\RedisCommandBuilderTest.cs" />
     <Compile Include="Tests\RedisCommandTest.cs" />
     <Compile Include="Tests\RedisConnectionTest.cs" />
