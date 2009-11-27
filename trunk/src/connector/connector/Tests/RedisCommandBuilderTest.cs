@@ -6,6 +6,38 @@ namespace Connector.Tests
     using NUnit.Framework;
 
     [TestFixture]
+    public class RedisInlineCommandBuilderTest
+    {
+        [Test]
+        public void SetCommandBuilding()
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand("SET");
+            builder.AddInlineArgument("foo");
+            builder.SetData("data");
+            var str = GetString(builder);
+            Assert.That(str, Is.EqualTo("SET foo 4\r\ndata\r\n"));
+        } 
+        
+        [Test]
+        public void GetCommandBuilding()
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand("GET");
+            builder.AddInlineArgument("foo");
+            var str = GetString(builder);
+            Assert.That(str, Is.EqualTo("GET foo\r\n"));
+        }
+
+        private static string GetString(IRedisCommandBuilder builder)
+        {
+            var ms = new MemoryStream();
+            builder.FlushCommandTo(new BinaryWriter(ms));
+            return Encoding.ASCII.GetString(ms.ToArray());
+        }
+    }
+
+    [TestFixture]
     public class RedisCommandBuilderTest
     {
         [Test]
@@ -38,7 +70,7 @@ namespace Connector.Tests
             
         }
 
-        private static string GetString(RedisCommandBuilder builder)
+        private static string GetString(IRedisCommandBuilder builder)
         {
             var ms = new MemoryStream();
             builder.FlushCommandTo(new BinaryWriter(ms));

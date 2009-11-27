@@ -5,7 +5,72 @@ namespace Connector
     using System.IO;
     using System.Text;
 
-    public class RedisCommandBuilder
+    public interface IRedisCommandBuilder
+    {
+        void SetCommand(string command);
+
+        void AddInlineArgument(string arg);
+
+        void SetData(byte[] data);
+
+        void SetData(string data);
+
+        void FlushCommandTo(BinaryWriter redisStream);
+    }
+
+    public class RedisInlineCommandBuilder : IRedisCommandBuilder
+    {
+        
+        private static readonly byte[] EndLine = new byte[] { 0x0d, 0x0a };
+        private static readonly byte Space = 0x20 ;
+
+        private byte[] _command;
+
+        private List<byte[]> _inline = new List<byte[]>();
+        private byte[] _data = null;
+
+        public void SetCommand(string command)
+        {
+            _command = Encoding.ASCII.GetBytes(command);
+        }
+
+        public void AddInlineArgument(string arg)
+        {
+            _inline.Add(Encoding.ASCII.GetBytes(arg));
+        }
+
+        public void SetData(byte[] data)
+        {
+            _data = data;
+        }
+
+        public void SetData(string data)
+        {
+            _data = Encoding.ASCII.GetBytes(data);
+        }
+
+        public void FlushCommandTo(BinaryWriter redisStream)
+        {
+            redisStream.Write(_command);
+            
+            foreach(var inline in _inline)
+            {
+                redisStream.Write(Space);
+                redisStream.Write(inline);
+            }
+            if(_data != null)
+            {
+                redisStream.Write(Space);
+                redisStream.Write(Encoding.ASCII.GetBytes(_data.Length.ToString()));
+                redisStream.Write(EndLine);
+                redisStream.Write(_data);
+            }
+            redisStream.Write(EndLine);
+        }
+
+    }
+
+    public class RedisCommandBuilder : IRedisCommandBuilder
     {
         const int BulkData = 0x24;
         const int MultiBulk = 0x2a;
@@ -19,6 +84,21 @@ namespace Connector
         public void SetCommand(string command)
         {
             _command = command;
+        }
+
+        public void AddInlineArgument(string arg)
+        {
+            AddArgument(arg);
+        }
+
+        public void SetData(byte[] data)
+        {
+            AddArgument(data);
+        }
+
+        public void SetData(string data)
+        {
+            AddArgument(data);
         }
 
         public void AddArgument(string arg)
@@ -55,6 +135,11 @@ namespace Connector
             WriteInt(writer, BulkData, bytes.Length);
             writer.Write(bytes);
             writer.Write(EndLine);
+        }
+
+        public void AddInline(string foo)
+        {
+            throw new NotImplementedException();
         }
     }
 }

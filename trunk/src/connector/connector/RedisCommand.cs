@@ -11,9 +11,9 @@ namespace Connector
     {
         private readonly RedisConnection _connection;
 
-        private readonly RedisCommandBuilder _builder;
+        private readonly IRedisCommandBuilder _builder;
 
-        public RedisCommand(RedisConnection connection, RedisCommandBuilder builder)
+        public RedisCommand(RedisConnection connection, IRedisCommandBuilder builder)
         {
             _connection = connection;
             _builder = builder;
@@ -66,7 +66,7 @@ namespace Connector
     }
     public class RedisCommandWithBytes : RedisCommand
     {
-        public RedisCommandWithBytes(RedisConnection connection, RedisCommandBuilder builder)
+        public RedisCommandWithBytes(RedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
