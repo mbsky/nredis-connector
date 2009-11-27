@@ -11,18 +11,18 @@ namespace Connector
 
         public RedisCommand Set(string key, string value)
         {
-            var builder = new RedisCommandBuilder();
+            var builder = new RedisInlineCommandBuilder();
             builder.SetCommand("SET");
-            builder.AddArgument(key);
-            builder.AddArgument(value);
+            builder.AddInlineArgument(key);
+            builder.SetData(value);
             return new RedisCommand(this._connection, builder);
         }
 
         public RedisCommandWithBytes Get(string key)
         {
-            var builder = new RedisCommandBuilder();
+            var builder = new RedisInlineCommandBuilder();
             builder.SetCommand("GET");
-            builder.AddArgument(key);
+            builder.AddInlineArgument(key);
             return new RedisCommandWithBytes (this._connection, builder);
         }
     }

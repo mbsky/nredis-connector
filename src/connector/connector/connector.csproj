@@ -55,6 +55,7 @@
     <Compile Include="Tests\RedisCommandBuilderTest.cs" />
     <Compile Include="Tests\RedisCommandTest.cs" />
     <Compile Include="Tests\RedisConnectionTest.cs" />
+    <Compile Include="Tests\RedisIntegrationTest.cs" />
     <Compile Include="Tests\RedisReaderTest.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
