@@ -9,21 +9,30 @@
     public class RedisReaderTest
     {
         [Test]
-        public void ReadLine()
+        public void ReadLineInner()
         {
             var reader = this.GetReader("+PONG\r\n");
             var value = reader.ReadLineInner();
             var str = this.GetString(value);
             Assert.That(str, Is.EqualTo("+PONG"));
         }
+
+       
         
         [Test]
-        public void ReadLineWithR()
+        public void ReadLineInnerWithR()
         {
             var reader = this.GetReader("+PON\rG\r\n");
             var value = reader.ReadLineInner();
             var str = this.GetString(value);
             Assert.That(str, Is.EqualTo("+PON\rG"));
+        }
+
+        [Test, ExpectedException(typeof(RedisException))]
+        public void ReadLineFromInt()
+        {
+            var reader = this.GetReader("$6\r\nfoobar\r\n");
+            var value = reader.ReadLine();
         }
 
         [Test]
