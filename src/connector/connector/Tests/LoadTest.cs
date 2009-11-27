@@ -10,6 +10,7 @@
     {
         private Process _redisProc;
 
+        const int TestTimeMs = 10000;
         [SetUp]
         public void Setup()
         {
@@ -35,9 +36,10 @@
                 var f = new CommandFactory(conn);
                 int count = 0;
                 sw.Start();
-                while (sw.ElapsedMilliseconds < 5000)
+                
+                while (sw.ElapsedMilliseconds < TestTimeMs)
                 {
-                    f.Set("foo", "bar").Exec();
+                    f.Set(Guid.NewGuid().ToString(), "bar").Exec();
                     count++;
                 }
                 sw.Stop();
@@ -58,7 +60,7 @@
                 f.Set("foo", "bar").Exec();
 
                 sw.Start();
-                while (sw.ElapsedMilliseconds < 5000)
+                while (sw.ElapsedMilliseconds < TestTimeMs)
                 {
                     f.Get("foo").Exec();
                     count++;
@@ -69,11 +71,34 @@
 
             }
         }
+        [Test, Ignore]
+        public void RPushPerSecond()
+        {
+            System.Diagnostics.Stopwatch sw = new Stopwatch();
+            using (var conn = RedisConnection.Connect("localhost", 6379))
+            {
+                var f = new CommandFactory(conn);
+                int count = 0;
+                
+                var bytes = Guid.NewGuid().ToByteArray();
+                sw.Start();
+                while (sw.ElapsedMilliseconds < TestTimeMs)
+                {
+                    f.Rpush("foo", bytes).Exec();
+                    count++;
+                }
+                sw.Stop();
+
+                Assert.Fail(String.Format("{0} Push/Sec", count * 1000.0 / sw.ElapsedMilliseconds));
+
+            }
+        }
 
         [TearDown]
         public void TearDown()
         {
             this._redisProc.Kill();
+            this._redisProc.WaitForExit();
         }
     }
 }
