@@ -32,18 +32,18 @@
 
         public IEnumerable<byte[]> ReadAny()
         {
-            int firstByte = _redisStream.PeekChar();
+            int firstByte = _redisStream.ReadByte();
             
             switch (firstByte)
             {
                 case SingleLineReply:
-                    return new List<byte[]> { Encoding.ASCII.GetBytes(this.ReadLine()) };
+                    return new List<byte[]> { this.ReadLineInner() };
                 case BulkData:
-                    return new List<byte[]> { this.ReadBulk() };
+                    return new List<byte[]> { this.ReadBulkInner() };
                 case MultiBulk:
-                    return this.ReadMultiBulk();
+                    return this.ReadMultiBulkInner();
                 case IntegerReply:
-                    return new List<byte[]> { BitConverter.GetBytes(this.ReadInteger()) };
+                    return new List<byte[]> { BitConverter.GetBytes(this.ReadIntegerInner()) };
                 default:
                     throw new RedisException(Encoding.ASCII.GetString(this.ReadLineInner()));
             }
@@ -51,23 +51,34 @@
 
         public byte[] ReadBulk()
         {
-            var bulkLength = this.ReadInteger();
+            _redisStream.ReadByte();
+            return this.ReadBulkInner();
+        }
+
+        private byte[] ReadBulkInner()
+        {
+            var bulkLength = this.ReadIntegerInner();
             if (bulkLength == -1)
             {
                 return null;
             }
 
             var buf = new byte[bulkLength];
-            _redisStream.Read(buf, 0, bulkLength);
-            _redisStream.ReadByte();
-            _redisStream.ReadByte();
+            this._redisStream.Read(buf, 0, bulkLength);
+            this._redisStream.ReadByte();
+            this._redisStream.ReadByte();
             return buf;
         }
 
         public int ReadInteger()
         {
+            _redisStream.ReadByte();
+            return ReadIntegerInner();
+        }
+        private int ReadIntegerInner()
+        {
             var str = Encoding.ASCII.GetString(this.ReadLineInner());
-            var bulkLength = int.Parse(str.Substring(1));
+            var bulkLength = int.Parse(str);
             return bulkLength;
         }
 
@@ -86,7 +97,7 @@
             int totalCount = 0;
             while (true)
             {
-                var val = _redisStream.Read();
+                var val = _redisStream.ReadByte();
                 if (val == -1)
                 {
                     break;
@@ -120,7 +131,13 @@
 
         public IEnumerable<byte[]> ReadMultiBulk()
         {
-            var bulkLength = this.ReadInteger();
+            _redisStream.ReadByte();
+            return this.ReadMultiBulkInner();
+        }
+
+        private IEnumerable<byte[]> ReadMultiBulkInner()
+        {
+            var bulkLength = this.ReadIntegerInner();
             if (bulkLength == -1)
             {
                 return null;
@@ -133,7 +150,6 @@
             }
             return list;
         }
-
     }
 
     public class RedisException : Exception

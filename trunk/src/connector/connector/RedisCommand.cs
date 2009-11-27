@@ -33,7 +33,7 @@ namespace Connector
 
         protected virtual void ReadResult(RedisReader reader)
         {
-            
+            reader.ReadLine();
         }
     }
     public class RedisCommandWithInt : RedisCommand
