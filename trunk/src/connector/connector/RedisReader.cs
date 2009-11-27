@@ -25,6 +25,15 @@
             this._redisStream = redisStream;
         }
 
+        private void ReadFirstByteAndCheckForError(byte expected)
+        {
+            var firstByte = _redisStream.ReadByte();
+            if (firstByte == ErrorMessage || firstByte != expected)
+            {
+                throw new RedisException(Encoding.ASCII.GetString(this.ReadLineInner()));
+            }
+        }
+
         public bool IsError()
         {
             return _redisStream.PeekChar() == ErrorMessage;
@@ -51,7 +60,7 @@
 
         public byte[] ReadBulk()
         {
-            _redisStream.ReadByte();
+            ReadFirstByteAndCheckForError(BulkData);
             return this.ReadBulkInner();
         }
 
@@ -72,7 +81,7 @@
 
         public int ReadInteger()
         {
-            _redisStream.ReadByte();
+            ReadFirstByteAndCheckForError(IntegerReply);
             return ReadIntegerInner();
         }
         private int ReadIntegerInner()
@@ -84,7 +93,7 @@
 
         public string ReadLine()
         {
-            _redisStream.ReadByte();
+            ReadFirstByteAndCheckForError(SingleLineReply);
             return Encoding.ASCII.GetString( this.ReadLineInner());
         }
 
@@ -131,7 +140,7 @@
 
         public IEnumerable<byte[]> ReadMultiBulk()
         {
-            _redisStream.ReadByte();
+            ReadFirstByteAndCheckForError(MultiBulk);
             return this.ReadMultiBulkInner();
         }
 

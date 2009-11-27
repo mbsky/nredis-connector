@@ -63,7 +63,7 @@ namespace Connector.Tests
         public void TearDown()
         {
             _redisProc.Kill();
-            
+            _redisProc.WaitForExit();
         }
     }
 }

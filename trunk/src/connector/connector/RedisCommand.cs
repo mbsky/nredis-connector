@@ -36,13 +36,27 @@ namespace Connector
             reader.ReadLine();
         }
     }
-    public class RedisCommandWithInt : RedisCommand
+
+    public abstract class RedisCommandWithResult<T> : RedisCommand
     {
-        public RedisCommandWithInt(RedisConnection connection, RedisCommandBuilder builder)
+        protected RedisCommandWithResult(RedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
-        public int Result { get; private set; }
+        public T Result { get; protected set; }
+        public T ExecAndReturn()
+        {
+            Exec();
+            return Result;
+        }
+    }
+
+    public class RedisCommandWithInt : RedisCommandWithResult<int>
+    {
+        public RedisCommandWithInt(RedisConnection connection, IRedisCommandBuilder builder)
+            : base(connection, builder)
+        {
+        }
 
         protected override void ReadResult(RedisReader reader)
         {
@@ -50,32 +64,43 @@ namespace Connector
         }
     }
 
-    public class RedisCommandWithString : RedisCommand
+    public class RedisCommandWithString :  RedisCommandWithResult<string>
     {
-        public RedisCommandWithString(RedisConnection connection, RedisCommandBuilder builder)
+        public RedisCommandWithString(RedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
 
-        public string Result { get; private set; }
 
         protected override void ReadResult(RedisReader reader)
         {
             Result = reader.ReadLine();
         }
+
     }
-    public class RedisCommandWithBytes : RedisCommand
+
+    public class RedisCommandWithBytes : RedisCommandWithResult<byte[]>
     {
         public RedisCommandWithBytes(RedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
 
-        public byte[] Result { get; private set; }
-
         protected override void ReadResult(RedisReader reader)
         {
             Result = reader.ReadAny().First();
+        }
+    } 
+    public class RedisCommandWithMultiBytes : RedisCommandWithResult<IEnumerable<byte[]>>
+    {
+        public RedisCommandWithMultiBytes(RedisConnection connection, IRedisCommandBuilder builder)
+            : base(connection, builder)
+        {
+        }
+
+        protected override void ReadResult(RedisReader reader)
+        {
+            Result = reader.ReadMultiBulk();
         }
     }
 }
