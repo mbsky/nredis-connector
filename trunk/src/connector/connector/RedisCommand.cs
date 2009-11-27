@@ -37,6 +37,17 @@ namespace Connector
         }
     }
 
+    public class RedisQuitCommand : RedisCommand
+    {
+        public RedisQuitCommand(RedisConnection connection, IRedisCommandBuilder builder)
+            : base(connection, builder)
+        {
+        }
+        protected override void ReadResult(RedisReader reader)
+        {
+        }
+    }
+
     public abstract class RedisCommandWithResult<T> : RedisCommand
     {
         protected RedisCommandWithResult(RedisConnection connection, IRedisCommandBuilder builder)

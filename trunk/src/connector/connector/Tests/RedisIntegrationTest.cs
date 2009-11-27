@@ -94,6 +94,16 @@ namespace Connector.Tests
                 Assert.That(setCmd.Result, Is.EqualTo(0));
             }
         }
+        [Test]
+        public void RPush()
+        {
+            using (var conn = RedisConnection.Connect("localhost", 6379))
+            {
+                var f = new CommandFactory(conn);
+                var cmd = f.Rpush("foo", this.Bytes("bar"));
+                cmd.Exec();
+            }
+        } 
 
         [TestFixtureSetUp]
         public void FixtureSetup()

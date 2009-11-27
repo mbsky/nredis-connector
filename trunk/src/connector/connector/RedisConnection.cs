@@ -55,10 +55,18 @@ namespace Connector
             }
         }
 
+        public void Close()
+        {
+            var f = new CommandFactory(this);
+            f.Quit().Exec();
+        }
+
         public void Dispose()
         {
+
             if (_stream != null)
             {
+                Close();
                 _stream.Close();
             }
             if (_socket != null)
