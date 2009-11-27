@@ -2,6 +2,7 @@ namespace Connector.Tests
 {
     using System;
     using System.Diagnostics;
+    using System.Text;
 
     using NUnit.Framework;
 
@@ -37,16 +38,14 @@ namespace Connector.Tests
                 f.Set("foo", "bar").Exec();
                 var cmd = f.Get("foo");
                 cmd.Exec();
-                Assert.That(cmd.Result, Is.EqualTo("bar"));
+                Assert.That(Encoding.ASCII.GetString(cmd.Result), Is.EqualTo("bar"));
             }
-
         }
         
         [TearDown]
         public void TearDown()
         {
             this._redisProc.Kill();
-            
         }
     }
 }

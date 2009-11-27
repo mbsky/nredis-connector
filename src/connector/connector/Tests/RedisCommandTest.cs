@@ -24,7 +24,7 @@ namespace Connector.Tests
         [Test]
         public void GetCommandWithNormalResult()
         {
-            using (var connection = ConnectionMock.Create("+baz", "GET foo"))
+            using (var connection = new ConnectionMock("GET foo\r\n", "+baz\r\n"))
             {
                 var f = new CommandFactory(connection);
                 var command = f.Get("foo");
@@ -35,7 +35,7 @@ namespace Connector.Tests
         [Test, ExpectedException(typeof(RedisException))]
         public void SetCommandWithError()
         {
-            using (var connection = ConnectionMock.Create("-ERR Get off", "set foo 1_3_")) 
+            using (var connection = new ConnectionMock("set foo 1\r\n3\r\n", "-ERR Get off\r\n")) 
             {
                 var f = new CommandFactory(connection);
                 RedisCommand command = f.Set("foo", "3");
