@@ -66,6 +66,7 @@ namespace Connector
                 redisStream.Write(_data);
             }
             redisStream.Write(EndLine);
+            redisStream.Flush();
         }
 
     }

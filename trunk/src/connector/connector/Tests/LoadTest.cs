@@ -4,6 +4,7 @@
     using System.Diagnostics;
 
     using NUnit.Framework;
+    using System.Threading;
 
     [TestFixture]
     public class LoadTest
@@ -88,6 +89,46 @@
                 Assert.Fail(String.Format("{0} Sets/Sec", count * 1000.0 / sw.ElapsedMilliseconds));
 
             }
+        }
+
+        [Test]
+        public void SetsPerSecondWith50Threads()
+        {
+            System.Diagnostics.Stopwatch sw = new Stopwatch();
+            long counter = 0;
+            bool run = true;
+            var evt = new ManualResetEvent(false);
+            var ts = new ThreadStart(() => {
+                using (var conn = RedisConnection.Connect("localhost", 6379))
+                {
+                    var f = new CommandFactory(conn);
+                    evt.WaitOne();
+                    while (run)
+                    {
+                        f.Set("bar", "baz").Exec();
+                        Interlocked.Increment(ref counter);
+                    }
+                }
+            });
+            var workers = new System.Collections.Generic.List<Thread>();
+            for (int i = 0; i < 50; i++)
+            {
+                var t = new Thread(ts);
+                t.Start();
+                workers.Add(t);
+            }
+            sw.Start();
+            evt.Set();
+            Thread.Sleep(10000);
+            run = false;
+            sw.Stop();
+            foreach (var t in workers)
+            {
+                t.Join();
+            }
+
+            Assert.Fail(String.Format("{0} Sets/Sec", counter * 1000.0 / sw.ElapsedMilliseconds));
+            
         }
 
         [Test, Ignore]
