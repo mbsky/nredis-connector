@@ -44,7 +44,7 @@ namespace Connector.Tests
         }
     }
 
-    internal class ConnectionMock : RedisConnection
+    internal class ConnectionMock : IRedisConnection
     {
         private readonly string _expectedCommand;
 
@@ -76,7 +76,7 @@ namespace Connector.Tests
             Assert.That(writtenCommand, Is.EqualTo(_expectedCommand));
         }
 
-        public override System.IO.BinaryReader Reader
+        public System.IO.BinaryReader Reader
         {
             get
             {
@@ -84,12 +84,29 @@ namespace Connector.Tests
             }
         }
 
-        public override System.IO.BinaryWriter Writer
+        public System.IO.BinaryWriter Writer
         {
             get
             {
                 return _writerMock;
             }
         }
+
+        #region IRedisConnection Members
+
+
+        public void Close()
+        {
+        }
+
+        #endregion
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+        }
+
+        #endregion
     }
 }

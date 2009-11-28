@@ -8,8 +8,15 @@ namespace Connector
     using System.IO;
     using System.Net.Sockets;
 
-    
-    public class RedisConnection : IDisposable
+
+    public interface IRedisConnection : IDisposable
+    {
+        BinaryWriter Writer {get;}
+        BinaryReader Reader {get;}
+        void Close();
+    }
+
+    public class RedisConnection : IRedisConnection
     {
         private NetworkStream _stream;
 
@@ -30,7 +37,7 @@ namespace Connector
             return conn;
         }
 
-        private void ConnectInt(string host, int port)
+        protected void ConnectInt(string host, int port)
         {
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _socket.Connect(host, port);
@@ -39,7 +46,7 @@ namespace Connector
             _writer = new BinaryWriter(_stream);
         }
 
-        public virtual BinaryWriter Writer
+        public BinaryWriter Writer
         {
             get
             {
@@ -47,7 +54,7 @@ namespace Connector
             }
         }
 
-        public virtual BinaryReader Reader
+        public BinaryReader Reader
         {
             get
             {
@@ -63,7 +70,6 @@ namespace Connector
 
         public void Dispose()
         {
-
             if (_stream != null)
             {
                 Close();

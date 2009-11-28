@@ -38,7 +38,7 @@ namespace Connector.Tests
         }
         private string ReadLine()
         {
-            while (true)
+            for(var i = 0; i < 1; i++)
             {
                 var line = this._redisProc.StandardOutput.ReadLine();
                 if(!line.Contains(StatusMarker))
@@ -46,6 +46,7 @@ namespace Connector.Tests
                     return line;
                 }
             }
+            return null;
         }
 
         [Test]
@@ -57,6 +58,24 @@ namespace Connector.Tests
                 Assert.That(sampleOut, Is.StringContaining("Accepted 127.0.0.1"));
             }
 
+        }
+
+        [Test]
+        public void ConnectionPoolDoesnSpawnNewConnections()
+        {
+            using(var pool = new ConnectionPool("localhost", 6379))
+            {
+                using(var con = pool.GetConnection())
+                {
+                    var sampleOut = this.ReadLine();
+                    Assert.That(sampleOut, Is.StringContaining("Accepted 127.0.0.1"));
+                }
+                using (var con = pool.GetConnection())
+                {
+                    var sampleOut = this.ReadLine();
+                    Assert.That(sampleOut, Is.Null);
+                }
+            }
         }
         
         [TearDown]
