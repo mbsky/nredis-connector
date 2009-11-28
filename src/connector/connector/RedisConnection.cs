@@ -43,7 +43,7 @@ namespace Connector
             _socket.Connect(host, port);
             _stream = new NetworkStream(_socket);
             _reader = new BinaryReader(this._stream);
-            _writer = new BinaryWriter(_stream);
+            _writer = new BinaryWriter(new BufferedStream(this._stream));
         }
 
         public BinaryWriter Writer
