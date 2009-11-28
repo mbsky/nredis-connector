@@ -4,9 +4,9 @@ namespace Connector
 
     public class CommandFactory
     {
-        private readonly RedisConnection _connection;
+        private readonly IRedisConnection _connection;
 
-        public CommandFactory(RedisConnection connection)
+        public CommandFactory(IRedisConnection connection)
         {
             this._connection = connection;
         }

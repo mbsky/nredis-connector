@@ -107,11 +107,7 @@
             while (true)
             {
                 var val = _redisStream.ReadByte();
-                if (val == -1)
-                {
-                    break;
-                }
-
+                
                 if (val == 0x0d)
                 {
                     val = _redisStream.ReadByte();

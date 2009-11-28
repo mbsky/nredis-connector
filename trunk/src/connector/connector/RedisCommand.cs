@@ -9,11 +9,11 @@ namespace Connector
 
     public class RedisCommand
     {
-        private readonly RedisConnection _connection;
+        private readonly IRedisConnection _connection;
 
         private readonly IRedisCommandBuilder _builder;
 
-        public RedisCommand(RedisConnection connection, IRedisCommandBuilder builder)
+        public RedisCommand(IRedisConnection connection, IRedisCommandBuilder builder)
         {
             _connection = connection;
             _builder = builder;
@@ -39,7 +39,7 @@ namespace Connector
 
     public class RedisQuitCommand : RedisCommand
     {
-        public RedisQuitCommand(RedisConnection connection, IRedisCommandBuilder builder)
+        public RedisQuitCommand(IRedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
@@ -50,7 +50,7 @@ namespace Connector
 
     public abstract class RedisCommandWithResult<T> : RedisCommand
     {
-        protected RedisCommandWithResult(RedisConnection connection, IRedisCommandBuilder builder)
+        protected RedisCommandWithResult(IRedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
@@ -64,7 +64,7 @@ namespace Connector
 
     public class RedisCommandWithInt : RedisCommandWithResult<int>
     {
-        public RedisCommandWithInt(RedisConnection connection, IRedisCommandBuilder builder)
+        public RedisCommandWithInt(IRedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
@@ -77,7 +77,7 @@ namespace Connector
 
     public class RedisCommandWithString :  RedisCommandWithResult<string>
     {
-        public RedisCommandWithString(RedisConnection connection, IRedisCommandBuilder builder)
+        public RedisCommandWithString(IRedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
@@ -92,7 +92,7 @@ namespace Connector
 
     public class RedisCommandWithBytes : RedisCommandWithResult<byte[]>
     {
-        public RedisCommandWithBytes(RedisConnection connection, IRedisCommandBuilder builder)
+        public RedisCommandWithBytes(IRedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
@@ -104,7 +104,7 @@ namespace Connector
     } 
     public class RedisCommandWithMultiBytes : RedisCommandWithResult<IEnumerable<byte[]>>
     {
-        public RedisCommandWithMultiBytes(RedisConnection connection, IRedisCommandBuilder builder)
+        public RedisCommandWithMultiBytes(IRedisConnection connection, IRedisCommandBuilder builder)
             : base(connection, builder)
         {
         }
