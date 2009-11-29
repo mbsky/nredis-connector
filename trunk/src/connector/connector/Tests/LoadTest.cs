@@ -91,7 +91,7 @@
             }
         }
 
-        [Test]
+        [Test, Ignore]
         public void SetsPerSecondWith50Threads()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
@@ -119,7 +119,7 @@
             }
             sw.Start();
             evt.Set();
-            Thread.Sleep(10000);
+            Thread.Sleep(30000);
             run = false;
             sw.Stop();
             foreach (var t in workers)
