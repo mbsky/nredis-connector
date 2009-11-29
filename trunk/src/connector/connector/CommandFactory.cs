@@ -2,7 +2,7 @@ namespace Connector
 {
     using System;
 
-    public class CommandFactory
+    public partial class CommandFactory
     {
         private readonly IRedisConnection _connection;
 
@@ -26,6 +26,24 @@ namespace Connector
             return builder;
         }
 
+        private static RedisInlineCommandBuilder For2Args(string command, string key1, string key2)
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand(command);
+            builder.AddInlineArgument(key1);
+            builder.AddInlineArgument(key2);
+            return builder;
+        }
+
+        private static RedisInlineCommandBuilder For2Args(string command, string key, int value)
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand(command);
+            builder.AddInlineArgument(key);
+            builder.AddInlineArgument(value.ToString());
+            return builder;
+        }
+
         private static RedisInlineCommandBuilder For2Args(string command, string key, byte[] value)
         {
             var builder = new RedisInlineCommandBuilder();
@@ -33,6 +51,48 @@ namespace Connector
             builder.AddInlineArgument(key);
             builder.SetData(value);
             return builder;
+        }
+
+        private static RedisInlineCommandBuilder For3Args(string command, string key, string v1, byte[] data)
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand(command);
+            builder.AddInlineArgument(key);
+            builder.AddInlineArgument(v1);
+            builder.SetData(data);
+
+            return builder;
+        }
+        private static RedisInlineCommandBuilder For3Args(string command, string key, int v1, byte[] data)
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand(command);
+            builder.AddInlineArgument(key);
+            builder.AddInlineArgument(v1.ToString());
+            builder.SetData(data);
+
+            return builder;
+        }
+        private static RedisInlineCommandBuilder For3Args(string command, string key, int v1, int v2)
+        {
+            var builder = new RedisInlineCommandBuilder();
+            builder.SetCommand(command);
+            builder.AddInlineArgument(key);
+            builder.AddInlineArgument(v1.ToString());
+            builder.AddInlineArgument(v2.ToString());
+            
+            return builder;
+        }
+
+        public RedisCommandWithString RandomKey()
+        {
+            var builder = For0Args("RANDOMKEY");
+            return new RedisCommandWithString(this._connection, builder);
+        }
+        public RedisCommandWithInt DbSize()
+        {
+            var builder = For0Args("DBSIZE");
+            return new RedisCommandWithInt(this._connection, builder);
         }
 
         public RedisCommand Set(string key, string value)
@@ -44,23 +104,6 @@ namespace Connector
             return new RedisCommand(this._connection, builder);
         }
         
-        public RedisCommand Set(string key, byte[] value)
-        {
-            var builder = For2Args("SET", key, value);
-            return new RedisCommand(this._connection, builder);
-        }
-
-        public RedisCommandWithBytes GetSet(string key, byte[] value)
-        {
-            var builder = For2Args("GETSET", key, value);
-            return new RedisCommandWithBytes(this._connection, builder);
-        }
-        public RedisCommandWithInt SetNotExists(string key, byte[] value)
-        {
-            var builder = For2Args("SETNX", key, value);
-            return new RedisCommandWithInt(this._connection, builder);
-        }
-
         public RedisCommandWithBytes Get(string key)
         {
             var builder = For1Args("GET", key);
@@ -84,6 +127,7 @@ namespace Connector
             builder.SetCommand("FLUSHALL");
             return new RedisCommand(_connection, builder);
         }
+
         public RedisCommand Quit()
         {
             var builder = For0Args("QUIT");
