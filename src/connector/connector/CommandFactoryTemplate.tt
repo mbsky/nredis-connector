@@ -1,0 +1,119 @@
+﻿<#@template language="C#v3.5"#>
+<#
+    string data = 
+@"Auth n AUTH sv
+Get b GET sk bv
+Set n SET sk bv
+GetSet b GETSET sk bv
+SetNotExists i SETNX sk bv
+Increment i INCR sk
+IncrementBy i INCRBY sk iv
+Decrement i DECR sk
+DecrementBy i DECRBY sk iv
+Exists i EXISTS sk
+Delete i DEL sk
+Type s TYPE sk
+Keys b KEYS sk
+Rename i RENAME sv sv
+RenameNotExists i RENAMENX sv sv
+Expire i EXPIRE sk iv
+TimeToLive i TTL sk
+ListRPush n RPUSH sk bv
+ListLPush n LPUSH sk bv
+ListLen n LLEN sk
+ListRange m LRANGE sk iv iv
+ListTrim n LTRIM sk iv iv
+ListByIndex b LINDEX sk iv
+ListSetByIndex n LSET sk iv bv
+ListRemove n LREM sk iv bv
+ListLPop b LPOP sk
+ListRPop b RPOP sk
+ListRPopLPush b RPOPLPUSH sv sv
+SetAdd i SADD sk bv
+SetRemove i SREM sk bv
+SetMove i SMOVE sv sv bv
+SetCardinality i SCARD sk";
+#>
+
+namespace Connector
+{
+    using System;
+
+    public partial class CommandFactory
+    {
+<# foreach(string line in data.Split('\n')) {
+    string[] args = line.Split(' ');
+    string fname = args[0];
+    char ret = args[1][0];
+    string name = args[2];
+    
+    string fargs = GetArgs(args, 3, ", {0} {1}");
+    string fpar = GetArgs(args, 3, ", {1}");
+    string factoryMethod = String.Format("For{0}Args", args.Length - 3);
+    
+    string returnType = null;
+    switch(ret)
+    {
+        case 'b':
+            returnType = "RedisCommandWithBytes";
+            break;
+        case 'n':
+            returnType = "RedisCommand";
+            break;
+        case 'i':
+            returnType = "RedisCommandWithInt";
+            break;
+        case 's':
+            returnType = "RedisCommandWithString";
+            break;
+        case 'm':
+            returnType = "RedisCommandWithMultiBytes";
+            break;
+            
+    }
+    
+#>
+        public <#=returnType#> <#=fname#>(<#=fargs#>)
+        {
+            var builder = <#=factoryMethod#>("<#=name#>", <#=fpar#>);
+            return new <#=returnType#>(this._connection, builder);
+        }
+<#}#>
+    }
+}
+<#+
+string GetArgs(string[] args, int start, string fmt)
+{
+    string fargs = "";
+    int valueIndex = 0;
+    for(int i = start; i < args.Length; i++)
+    {
+        char actype = args[i][0];
+        char acname = args[i][1];
+        string atype = "";
+        string aname = "";
+        switch(actype)
+        {
+            case 's':
+                atype = "string";
+                break;
+            case 'b':
+                atype = "byte[]";
+                break;
+            case 'i':
+                atype = "int";
+                break;
+        }
+        switch(acname)
+        {
+            case 'k':
+                aname = "key";
+                break;
+            case 'v':
+                aname = "value" + (valueIndex++);
+                break;
+        }
+        fargs += String.Format(fmt, atype, aname);
+    }
+    return fargs.Trim(" ,\n\r".ToCharArray());
+}#>

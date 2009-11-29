@@ -24,6 +24,8 @@ namespace Connector.Tests
 
         #region Public Methods
 
+
+
         [Test]
         public void GetSetGetsPreviousValue()
         {

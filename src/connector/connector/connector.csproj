@@ -36,29 +36,35 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Xml.Linq">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommandFactory.cs" />
+    <Compile Include="CommandFactoryTemplate.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CommandFactoryTemplate.tt</DependentUpon>
+    </Compile>
     <Compile Include="ConnectionPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RedisCommand.cs" />
     <Compile Include="RedisCommandBuilder.cs" />
     <Compile Include="RedisConnection.cs" />
     <Compile Include="RedisReader.cs" />
-    <Compile Include="CommandFactory.cs" />
     <Compile Include="Tests\LoadTest.cs" />
     <Compile Include="Tests\RedisCommandBuilderTest.cs" />
     <Compile Include="Tests\RedisCommandTest.cs" />
     <Compile Include="Tests\RedisConnectionTest.cs" />
     <Compile Include="Tests\RedisIntegrationTest.cs" />
     <Compile Include="Tests\RedisReaderTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{B4F97281-0DBD-4835-9ED8-7DFB966E87FF}" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CommandFactoryTemplate.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CommandFactoryTemplate.cs</LastGenOutput>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
