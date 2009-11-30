@@ -144,7 +144,8 @@
                 sw.Start();
                 while (sw.ElapsedMilliseconds < TestTimeMs)
                 {
-                    f.Get("foo").Exec();
+                    RedisCommandWithBytes bytes = f.Get("foo");
+                    bytes.Exec();
                     count++;
                 }
                 sw.Stop();
