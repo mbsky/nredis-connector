@@ -6,12 +6,74 @@ using System.Text;
 namespace Connector
 {
     using System.IO;
+    using System.Threading;
+
+    public interface IComandExecutor
+    {
+        IEnumerable<byte[]> ExecuteCommand(IRedisConnection conn, IRedisCommandBuilder builder);
+    }
+
+    public class NormalCommandExecutor : IComandExecutor
+    {
+        public IEnumerable<byte[]> ExecuteCommand(IRedisConnection conn, IRedisCommandBuilder builder)
+        {
+            var reader = new RedisReader(conn.Reader);
+            builder.FlushCommandTo(conn.Writer);
+            
+            if (reader.IsError())
+            {
+                throw new RedisException(reader.ReadLine());
+            }
+            
+            return reader.ReadAny();
+        }
+    }
+
+    public class PipelinedCommandExecutor : IComandExecutor
+    {
+        private object _evtLock = new object();
+        private object _readLock = new object();
+        private Queue<AutoResetEvent> _evts = new Queue<AutoResetEvent>();
+
+        private PipelinedCommandExecutor() { }
+        private static IComandExecutor _inst = new PipelinedCommandExecutor(); 
+        public static IComandExecutor Instance
+        {
+            get
+            {
+                return _inst;
+            }
+        }
+
+        public IEnumerable<byte[]> ExecuteCommand(IRedisConnection conn, IRedisCommandBuilder builder)
+        {
+            var reader = new RedisReader(conn.Reader);
+            
+
+            var evt = new AutoResetEvent(false);
+            AutoResetEvent prevEvt = null;
+            lock (_evtLock)
+            {
+                builder.FlushCommandTo(conn.Writer);
+                _evts.Enqueue(evt);
+                prevEvt = _evts.Dequeue();
+            }
+            prevEvt.Set();
+            evt.WaitOne();
+            lock (_readLock)
+            {
+                return reader.ReadAny().ToArray();
+            }
+        }
+    }
 
     public class RedisCommand
     {
-        private readonly IRedisConnection _connection;
+        protected readonly IRedisConnection _connection;
 
-        private readonly IRedisCommandBuilder _builder;
+        protected readonly IRedisCommandBuilder _builder;
+
+        private readonly IComandExecutor _executor = PipelinedCommandExecutor.Instance;
 
         public RedisCommand(IRedisConnection connection, IRedisCommandBuilder builder)
         {
@@ -19,21 +81,15 @@ namespace Connector
             _builder = builder;
         }
 
-        public void Exec()
+        public virtual void Exec()
         {
-            var reader = new RedisReader(_connection.Reader);
-            _builder.FlushCommandTo(_connection.Writer);
+            var data = _executor.ExecuteCommand(_connection, _builder);
 
-            if (reader.IsError())
-            {
-                throw new RedisException(reader.ReadLine());
-            }
-            ReadResult(reader);
+            ReadResult(data);
         }
 
-        protected virtual void ReadResult(RedisReader reader)
+        protected virtual void ReadResult(IEnumerable<byte[]> data)
         {
-            reader.ReadLine();
         }
     }
 
@@ -43,7 +99,12 @@ namespace Connector
             : base(connection, builder)
         {
         }
-        protected override void ReadResult(RedisReader reader)
+        public override void Exec()
+        {
+            _builder.FlushCommandTo(_connection.Writer);
+        }
+
+        protected override void ReadResult(IEnumerable<byte[]> data)
         {
         }
     }
@@ -69,9 +130,9 @@ namespace Connector
         {
         }
 
-        protected override void ReadResult(RedisReader reader)
+        protected override void ReadResult(IEnumerable<byte[]> data)
         {
-            Result = reader.ReadInteger();
+            Result = BitConverter.ToInt32(data.First(), 0);
         }
     }
 
@@ -83,9 +144,9 @@ namespace Connector
         }
 
 
-        protected override void ReadResult(RedisReader reader)
+        protected override void ReadResult(IEnumerable<byte[]> data)
         {
-            Result = reader.ReadLine();
+            Result = Encoding.ASCII.GetString(data.First());
         }
 
     }
@@ -97,9 +158,9 @@ namespace Connector
         {
         }
 
-        protected override void ReadResult(RedisReader reader)
+        protected override void ReadResult(IEnumerable<byte[]> data)
         {
-            Result = reader.ReadAny().First();
+            Result = data.First();
         }
     } 
     public class RedisCommandWithMultiBytes : RedisCommandWithResult<IEnumerable<byte[]>>
@@ -109,9 +170,9 @@ namespace Connector
         {
         }
 
-        protected override void ReadResult(RedisReader reader)
+        protected override void ReadResult(IEnumerable<byte[]> data)
         {
-            Result = reader.ReadMultiBulk();
+            Result = data;
         }
     }
 }
