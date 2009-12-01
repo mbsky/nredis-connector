@@ -6,81 +6,6 @@ using System.Text;
 namespace Connector
 {
     using System.IO;
-    using System.Threading;
-
-    public interface IComandExecutor
-    {
-        IEnumerable<byte[]> ExecuteCommand(IRedisCommandBuilder builder);
-        void ExecuteCommandWithoutResult(IRedisCommandBuilder builder);
-    }
-
-    public class NormalCommandExecutor : IComandExecutor
-    {
-        private IRedisConnection _conn;
-        public NormalCommandExecutor(IRedisConnection conn)
-        {
-            _conn = conn;
-        }
-
-        public IEnumerable<byte[]> ExecuteCommand(IRedisCommandBuilder builder)
-        {
-            ExecuteCommandWithoutResult(builder);
-            var reader = new RedisReader(_conn.Reader);
-            if (reader.IsError())
-            {
-                throw new RedisException(reader.ReadLine());
-            }
-            return reader.ReadAny();
-        }
-
-        #region IComandExecutor Members
-
-
-        public void ExecuteCommandWithoutResult(IRedisCommandBuilder builder)
-        {
-            builder.FlushCommandTo(_conn.Writer);
-        }
-
-        #endregion
-    }
-
-    public class PipelinedCommandExecutor : IComandExecutor
-    {
-        private object _evtLock = new object();
-        private object _readLock = new object();
-        private Queue<AutoResetEvent> _evts = new Queue<AutoResetEvent>();
-
-        private IRedisConnection _conn;
-
-        public PipelinedCommandExecutor(IRedisConnection conn)
-        {
-            _conn = conn;
-        }
-
-        public IEnumerable<byte[]> ExecuteCommand(IRedisCommandBuilder builder)
-        {
-            ExecuteCommandWithoutResult(builder);
-            lock (_readLock)
-            {
-                var reader = new RedisReader(_conn.Reader);
-                return reader.ReadAny();
-            }
-        }
-        public void ExecuteCommandWithoutResult(IRedisCommandBuilder builder)
-        {
-            var evt = new AutoResetEvent(false);
-            AutoResetEvent prevEvt = null;
-            lock (_evtLock)
-            {
-                builder.FlushCommandTo(_conn.Writer);
-                _evts.Enqueue(evt);
-                prevEvt = _evts.Dequeue();
-            }
-            prevEvt.Set();
-            evt.WaitOne();
-            
-        }
-    }
 
     public class RedisCommand
     {
@@ -124,6 +49,7 @@ namespace Connector
         {
         }
         public T Result { get; protected set; }
+
         public T ExecAndReturn()
         {
             Exec();
@@ -144,7 +70,7 @@ namespace Connector
         }
     }
 
-    public class RedisCommandWithString :  RedisCommandWithResult<string>
+    public class RedisCommandWithString : RedisCommandWithResult<string>
     {
         public RedisCommandWithString(IComandExecutor executor, IRedisCommandBuilder builder)
             : base(executor, builder)
@@ -170,7 +96,7 @@ namespace Connector
         {
             Result = data.First();
         }
-    } 
+    }
     public class RedisCommandWithMultiBytes : RedisCommandWithResult<IEnumerable<byte[]>>
     {
         public RedisCommandWithMultiBytes(IComandExecutor executor, IRedisCommandBuilder builder)

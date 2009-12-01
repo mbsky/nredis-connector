@@ -99,9 +99,9 @@
 
         protected byte[] ReadLineInner()
         {
-            const int ReadBufSize = 200;
+            const int readBufSize = 200;
             var data = new List<byte[]>();
-            byte[] buf = new byte[ReadBufSize];
+            byte[] buf = new byte[readBufSize];
             int bufIndex = 0;
             int totalCount = 0;
             while (true)
@@ -122,10 +122,10 @@
 
                 buf[bufIndex++] = (byte)val;
                 totalCount++;
-                if (bufIndex == ReadBufSize)
+                if (bufIndex == readBufSize)
                 {
                     data.Add(buf);
-                    buf = new byte[ReadBufSize];
+                    buf = new byte[readBufSize];
                     bufIndex = 0;
                 }
             }

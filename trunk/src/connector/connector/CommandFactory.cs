@@ -11,11 +11,6 @@ namespace Connector
             _executor = executor;
         }
 
-        public CommandFactory(IRedisConnection conn)
-            :this(new NormalCommandExecutor(conn))
-        {
-        }
-
         private static RedisInlineCommandBuilder For1Args(string command, string key)
         {
             var builder = new RedisInlineCommandBuilder();

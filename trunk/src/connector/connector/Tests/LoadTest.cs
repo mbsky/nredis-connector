@@ -39,7 +39,7 @@
                 {
                     using (var conn = RedisConnection.Connect("localhost", 6379))
                     {
-                        var f = new CommandFactory(conn);
+                        var f = new CommandFactory(new NormalCommandExecutor(conn));
                         f.Set(Guid.NewGuid().ToString(), "bar").Exec();
                         count++;
                     }
@@ -56,7 +56,7 @@
                     {
                         using (var conn = pool.GetConnection())
                         {
-                            var f = new CommandFactory(conn);
+                            var f = new CommandFactory(new NormalCommandExecutor(conn));
                             f.Set(Guid.NewGuid().ToString(), "bar").Exec();
                             count2++;
                         }
@@ -75,7 +75,7 @@
             System.Diagnostics.Stopwatch sw = new Stopwatch();
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(new NormalCommandExecutor(conn));
                 int count = 0;
                 sw.Start();
                 
@@ -103,7 +103,7 @@
                 var ts = new ParameterizedThreadStart((o) =>
                 {
                     var iconn = (RedisConnection)o;
-                    var f = new CommandFactory(iconn);
+                    var f = new CommandFactory(new NormalCommandExecutor(iconn));
                     evt.WaitOne();
                     while (run)
                     {
@@ -139,7 +139,7 @@
             System.Diagnostics.Stopwatch sw = new Stopwatch();
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(new NormalCommandExecutor(conn));
                 int count = 0;
                 f.Set("foo", "bar").Exec();
 
@@ -162,7 +162,7 @@
             System.Diagnostics.Stopwatch sw = new Stopwatch();
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(new NormalCommandExecutor(conn));
                 int count = 0;
                 
                 var bytes = Guid.NewGuid().ToByteArray();

@@ -8,6 +8,8 @@ namespace Connector.Tests
     using System.Text;
 
     using NUnit.Framework;
+using System.Collections;
+    using System.Collections.Generic;
 
     #endregion
 
@@ -24,14 +26,17 @@ namespace Connector.Tests
 
         #region Public Methods
 
+        static Func<IRedisConnection, IComandExecutor>[] _executors = new Func<IRedisConnection, IComandExecutor>[] {
+            (IRedisConnection q) => new NormalCommandExecutor(q), 
+            (IRedisConnection q) => new PipelinedCommandExecutor(q)
+        };
 
-
-        [Test]
-        public void GetSetGetsPreviousValue()
+        [Test, TestCaseSource("_executors")]
+        public void GetSetGetsPreviousValue(Func<IRedisConnection, IComandExecutor> ef)
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(ef(conn));
                 f.Set("foo", Bytes("baz")).Exec();
                 var cmd1 = f.GetSet("foo", Bytes("bar"));
 
@@ -41,12 +46,12 @@ namespace Connector.Tests
             }
         }
 
-        [Test]
-        public void GetSetGetsSetsNewValue()
+        [Test, TestCaseSource("_executors")]
+        public void GetSetGetsSetsNewValue(Func<IRedisConnection, IComandExecutor> ef)
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(ef(conn));
                 f.Set("foo", Bytes("baz")).Exec();
                 f.GetSet("foo", Bytes("bar")).Exec();
                 var cmd1 = f.Get("foo");
@@ -57,12 +62,12 @@ namespace Connector.Tests
             }
         }
 
-        [Test]
-        public void MultiGet()
+        [Test, TestCaseSource("_executors")]
+        public void MultiGet(Func<IRedisConnection, IComandExecutor> ef)
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(ef(conn));
                 f.Set("foo1", "bar").Exec();
                 f.Set("foo2", "baz").Exec();
                 var cmd = f.MultiGet("foo1", "foo2");
@@ -71,24 +76,25 @@ namespace Connector.Tests
             }
         }
 
-        [Test]
-        public void SetAndGet()
+        [Test, TestCaseSource("_executors")]
+        public void SetAndGet(Func<IRedisConnection, IComandExecutor> ef)
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(ef(conn));
                 f.Set("foo", "bar").Exec();
                 var cmd = f.Get("foo");
                 cmd.Exec();
                 Assert.That(Encoding.ASCII.GetString(cmd.Result), Is.EqualTo("bar"));
             }
         }
-        [Test]
-        public void SetNotExists()
+        
+        [Test, TestCaseSource("_executors")]
+        public void SetNotExists(Func<IRedisConnection, IComandExecutor> ef)
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(ef(conn));
                 var setCmd = f.SetNotExists("foo", this.Bytes("bar"));
                 setCmd.Exec();
                 Assert.That(setCmd.Result, Is.EqualTo(1));
@@ -96,16 +102,34 @@ namespace Connector.Tests
                 Assert.That(setCmd.Result, Is.EqualTo(0));
             }
         }
-        [Test]
-        public void RPush()
+
+        [Test, TestCaseSource("_executors")]
+        public void RPush(Func<IRedisConnection, IComandExecutor> ef)
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                var f = new CommandFactory(conn);
+                var f = new CommandFactory(ef(conn));
                 var cmd = f.Rpush("foo", this.Bytes("bar"));
                 cmd.Exec();
             }
+        }
+        
+        [Test]
+        public void SeveralRPushFormsASet()
+        {
+            using (var conn = RedisConnection.Connect("localhost", 6379))
+            {
+                var f = new CommandFactory(new PipelinedCommandExecutor(conn));
+                f.Rpush("foo", this.Bytes("bar1")).Exec();
+                f.Rpush("foo", this.Bytes("bar2")).Exec();
+                f.Rpush("foo", this.Bytes("bar3")).Exec();
+                f.Rpush("foo", this.Bytes("bar4")).Exec();
+                var foos = f.ListRange("foo", 0, 4).ExecAndReturn();
+                Assert.That(Str(foos), Is.EqualTo(Enumerable.Range(1, 4).Select(q => "bar" + q)));
+                    
+            }
         } 
+
 
         [TestFixtureSetUp]
         public void FixtureSetup()
@@ -123,7 +147,7 @@ namespace Connector.Tests
         {
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
-                new CommandFactory(conn).FlushAll().Exec();
+                new CommandFactory(new NormalCommandExecutor(conn)).FlushAll().Exec();
             }
         }
 
@@ -147,6 +171,10 @@ namespace Connector.Tests
         private string Str(byte[] str)
         {
             return Encoding.ASCII.GetString(str);
+        }
+        private string[] Str(IEnumerable<byte[]> str)
+        {
+            return str.Select(q => Str(q)).ToArray();
         }
 
         #endregion
