@@ -4,11 +4,16 @@ namespace Connector
 
     public partial class CommandFactory
     {
-        private readonly IRedisConnection _connection;
+        private readonly IComandExecutor _executor;
 
-        public CommandFactory(IRedisConnection connection)
+        public CommandFactory(IComandExecutor executor)
         {
-            this._connection = connection;
+            _executor = executor;
+        }
+
+        public CommandFactory(IRedisConnection conn)
+            :this(new NormalCommandExecutor(conn))
+        {
         }
 
         private static RedisInlineCommandBuilder For1Args(string command, string key)
@@ -87,12 +92,12 @@ namespace Connector
         public RedisCommandWithString RandomKey()
         {
             var builder = For0Args("RANDOMKEY");
-            return new RedisCommandWithString(this._connection, builder);
+            return new RedisCommandWithString(this._executor, builder);
         }
         public RedisCommandWithInt DbSize()
         {
             var builder = For0Args("DBSIZE");
-            return new RedisCommandWithInt(this._connection, builder);
+            return new RedisCommandWithInt(this._executor, builder);
         }
 
         public RedisCommand Set(string key, string value)
@@ -101,13 +106,13 @@ namespace Connector
             builder.SetCommand("SET");
             builder.AddInlineArgument(key);
             builder.SetData(value);
-            return new RedisCommand(this._connection, builder);
+            return new RedisCommand(this._executor, builder);
         }
         
         public RedisCommandWithBytes Get(string key)
         {
             var builder = For1Args("GET", key);
-            return new RedisCommandWithBytes (this._connection, builder);
+            return new RedisCommandWithBytes (this._executor, builder);
         }
 
         public RedisCommandWithMultiBytes MultiGet(params string[] keys)
@@ -118,26 +123,26 @@ namespace Connector
             {
                 builder.AddInlineArgument(key);
             }
-            return new RedisCommandWithMultiBytes(_connection, builder);
+            return new RedisCommandWithMultiBytes(_executor, builder);
         }
 
         public RedisCommand FlushAll()
         {
             var builder = new RedisInlineCommandBuilder();
             builder.SetCommand("FLUSHALL");
-            return new RedisCommand(_connection, builder);
+            return new RedisCommand(_executor, builder);
         }
 
         public RedisCommand Quit()
         {
             var builder = For0Args("QUIT");
-            return new RedisQuitCommand(_connection, builder);
+            return new RedisQuitCommand(_executor, builder);
         }
 
         public RedisCommand Rpush(string foo, byte[] bytes)
         {
             var builder = For2Args("RPUSH", foo, bytes);
-            return new RedisCommand(_connection, builder);
+            return new RedisCommand(_executor, builder);
         }
     }
 
