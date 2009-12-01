@@ -15,7 +15,7 @@ namespace Connector.Tests
         {
             using (var connection = new ConnectionMock("SET foo 1_3_", "+OK\r\n"))
             {
-                var f = new CommandFactory(connection);
+                var f = new CommandFactory(new NormalCommandExecutor(connection));
                 RedisCommand command = f.Set("foo", "3");
                 command.Exec();
                 connection.Verify();
@@ -26,7 +26,7 @@ namespace Connector.Tests
         {
             using (var connection = new ConnectionMock("GET foo\r\n", "+baz\r\n"))
             {
-                var f = new CommandFactory(connection);
+                var f = new CommandFactory(new NormalCommandExecutor(connection));
                 var command = f.Get("foo");
                 command.Exec();
                 Assert.That(Encoding.ASCII.GetString(command.Result), Is.EqualTo("baz"));
@@ -37,7 +37,7 @@ namespace Connector.Tests
         {
             using (var connection = new ConnectionMock("set foo 1\r\n3\r\n", "-ERR Get off\r\n")) 
             {
-                var f = new CommandFactory(connection);
+                var f = new CommandFactory(new NormalCommandExecutor(connection));
                 RedisCommand command = f.Set("foo", "3");
                 command.Exec();
             }
