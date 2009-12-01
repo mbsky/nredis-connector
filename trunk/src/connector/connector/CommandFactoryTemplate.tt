@@ -76,7 +76,7 @@ namespace Connector
         public <#=returnType#> <#=fname#>(<#=fargs#>)
         {
             var builder = <#=factoryMethod#>("<#=name#>", <#=fpar#>);
-            return new <#=returnType#>(this._connection, builder);
+            return new <#=returnType#>(this._executor, builder);
         }
 <#}#>
     }

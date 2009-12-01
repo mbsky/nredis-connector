@@ -14,7 +14,8 @@ namespace Connector.Tests
     {
         private Process _redisProc;
 
-        public const string StatusMarker = "clients connected";
+        public const string StatusMarker1 = "clients connected";
+        public const string StatusMarker2 = "slots HT.";
 
         [SetUp]
         public void Setup()
@@ -32,7 +33,7 @@ namespace Connector.Tests
             {
                 throw new Exception("Unable to start redis");
             }
-            while (!this._redisProc.StandardOutput.ReadLine().Contains(StatusMarker))
+            while (!this._redisProc.StandardOutput.ReadLine().Contains(StatusMarker1))
             {
             }
         }
@@ -41,7 +42,7 @@ namespace Connector.Tests
             for(var i = 0; i < 1; i++)
             {
                 var line = this._redisProc.StandardOutput.ReadLine();
-                if(!line.Contains(StatusMarker))
+                if(!line.Contains(StatusMarker1) && !line.Contains(StatusMarker2))
                 {
                     return line;
                 }

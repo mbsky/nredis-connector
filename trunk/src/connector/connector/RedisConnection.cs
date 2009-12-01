@@ -64,7 +64,7 @@ namespace Connector
 
         public void Close()
         {
-            var f = new CommandFactory(this);
+            var f = new CommandFactory(new NormalCommandExecutor(this));
             f.Quit().Exec();
         }
 

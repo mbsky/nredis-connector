@@ -91,7 +91,7 @@
             }
         }
 
-        [Test]
+        [Test, Ignore]
         public void SetsPerSecondWith50Threads()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
