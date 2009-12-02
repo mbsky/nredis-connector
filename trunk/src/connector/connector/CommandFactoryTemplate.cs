@@ -5,7 +5,6 @@ namespace Connector
 
     public partial class CommandFactory
     {
-        
         public RedisCommand Auth(string value0)
         {
             var builder = For1Args("AUTH", value0);

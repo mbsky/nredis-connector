@@ -92,7 +92,49 @@
         }
 
         [Test, Ignore]
-        public void SetsPerSecondWith50Threads()
+        public void SetsPerSecondWith50ThreadsNormal()
+        {
+            System.Diagnostics.Stopwatch sw = new Stopwatch();
+            long counter = 0;
+            bool run = true;
+            var evt = new ManualResetEvent(false);
+            
+            var ts = new ParameterizedThreadStart((o) =>
+            {
+                using (var conn = RedisConnection.Connect("localhost", 6379))
+                {
+                    var f = new CommandFactory(new NormalCommandExecutor(conn));
+                    evt.WaitOne();
+                    while (run)
+                    {
+                        f.Set("bar", "baz").Exec();
+                        Interlocked.Increment(ref counter);
+                    }
+                }
+
+            });
+            var workers = new System.Collections.Generic.List<Thread>();
+            for (int i = 0; i < 50; i++)
+            {
+                var t = new Thread(ts);
+                t.Start(null);
+                workers.Add(t);
+            }
+            sw.Start();
+            evt.Set();
+            Thread.Sleep(30000);
+            run = false;
+            sw.Stop();
+            foreach (var t in workers)
+            {
+                t.Join();
+            }
+            Assert.Fail(String.Format("{0} Sets/Sec", counter * 1000.0 / sw.ElapsedMilliseconds));
+
+        }
+
+        [Test, Ignore]
+        public void SetsPerSecondWith50ThreadsPipelined()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
             long counter = 0;
@@ -100,10 +142,10 @@
             var evt = new ManualResetEvent(false);
             using (var conn = RedisConnection.Connect("localhost", 6379))
             {
+                var executor = new PipelinedCommandExecutor(conn);
                 var ts = new ParameterizedThreadStart((o) =>
                 {
-                    var iconn = (RedisConnection)o;
-                    var f = new CommandFactory(new NormalCommandExecutor(iconn));
+                    var f = new CommandFactory(executor);
                     evt.WaitOne();
                     while (run)
                     {
