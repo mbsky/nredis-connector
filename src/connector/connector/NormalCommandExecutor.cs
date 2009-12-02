@@ -2,6 +2,8 @@
 
 namespace Connector
 {
+    using System;
+
     public class NormalCommandExecutor : IComandExecutor
     {
         private IRedisConnection _conn;
@@ -31,6 +33,9 @@ namespace Connector
 
         #endregion
 
-     
+        public void Dispose()
+        {
+            _conn.Dispose();
+        }
     }
 }

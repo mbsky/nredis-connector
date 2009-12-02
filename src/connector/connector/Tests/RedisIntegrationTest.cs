@@ -130,6 +130,37 @@ using System.Collections;
             }
         } 
 
+        [Test]
+        public void NormalFactoryPoolTest()
+        {
+            using(var fp = new NormalCommandFactoryPool("localhost", 6379))
+            {
+                using(var f = fp.Get())
+                {
+                    f.Set("foo", Bytes("bar")).Exec();
+                    var res = Str(f.Get("foo").ExecAndReturn());
+                    Assert.That(res, Is.EqualTo("bar"));
+                }
+            }
+        }
+
+        [Test]
+        public void PipelineFactoryPoolTest()
+        {
+            using(var fp = new NormalCommandFactoryPool("localhost", 6379))
+            {
+                using(var f = fp.Get())
+                {
+                    f.Set("foo", Bytes("bar")).Exec();
+                }
+                using(var f = fp.Get())
+                {
+                    var res = Str(f.Get("foo").ExecAndReturn());
+                    Assert.That(res, Is.EqualTo("bar"));
+                }
+            }
+        }
+
 
         [TestFixtureSetUp]
         public void FixtureSetup()

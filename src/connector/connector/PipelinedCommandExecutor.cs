@@ -3,6 +3,8 @@ using System.Threading;
 
 namespace Connector
 {
+    using System;
+
     public class PipelinedCommandExecutor : IComandExecutor
     {
         private object _evtLock = new object();
@@ -52,6 +54,11 @@ namespace Connector
         {
             var resultIsReady = Exec(builder);
             resultIsReady.WaitOne();
+        }
+
+        public void Dispose()
+        {
+            _conn.Dispose();
         }
     }
 }
