@@ -2,7 +2,7 @@ namespace Connector
 {
     using System;
 
-    public partial class CommandFactory
+    public partial class CommandFactory : IDisposable
     {
         private readonly IComandExecutor _executor;
 
@@ -138,6 +138,11 @@ namespace Connector
         {
             var builder = For2Args("RPUSH", foo, bytes);
             return new RedisCommand(_executor, builder);
+        }
+
+        public void Dispose()
+        {
+            _executor.Dispose();
         }
     }
 

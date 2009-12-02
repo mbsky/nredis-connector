@@ -2,7 +2,9 @@
 
 namespace Connector
 {
-    public interface IComandExecutor
+    using System;
+
+    public interface IComandExecutor : IDisposable
     {
         IEnumerable<byte[]> ExecuteCommand(IRedisCommandBuilder builder);
         void ExecuteCommandWithoutResult(IRedisCommandBuilder builder);
