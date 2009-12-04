@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Connector;
 using Connector.Tests;
 
 namespace for_profiler
@@ -14,7 +15,13 @@ namespace for_profiler
             x.Setup();
             try
             {
-                x.SetsPerSecondWith50Threads();
+                //using(var conn = RedisConnection.Connect("localhost", 6379))
+                //{
+                //    var f = new CommandFactory(new NormalCommandExecutor(conn));
+                //    f.Set("foo", new byte[515<<10]).Exec();
+                    
+                //}
+                x.SetsPerSecondOn512kbSet();
             }
             catch(Exception e)
             {

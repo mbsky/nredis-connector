@@ -48,8 +48,9 @@ namespace Connector
 
         public void Dispose()
         {
-            _conn.Dispose();
             _pipelinedExecutor.Dispose();
+            _conn.Dispose();
+
         }
     }
 }

@@ -58,7 +58,11 @@ namespace Connector
 
         public void Dispose()
         {
-            _conn.Dispose();
+            if (_conn != null)
+            {
+                _conn.Dispose();
+                _conn = null;
+            }
         }
     }
 }
