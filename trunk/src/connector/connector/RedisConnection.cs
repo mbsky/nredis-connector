@@ -26,6 +26,8 @@ namespace Connector
 
         private BinaryReader _reader;
 
+        private const int BufferSize = 1024;
+
         protected RedisConnection()
         {
         }
@@ -43,7 +45,8 @@ namespace Connector
             _socket.Connect(host, port);
             _stream = new NetworkStream(_socket);
             _reader = new BinaryReader(this._stream);
-            _writer = new BinaryWriter(new BufferedStream(this._stream));
+            var bufferedStream = new BufferedStream(this._stream, BufferSize);
+            _writer = new BinaryWriter(bufferedStream);
         }
 
         public BinaryWriter Writer
@@ -74,10 +77,12 @@ namespace Connector
             {
                 Close();
                 _stream.Close();
+                _stream = null;
             }
             if (_socket != null)
             {
                 _socket.Close();
+                _socket = null;
             }
         }
     }

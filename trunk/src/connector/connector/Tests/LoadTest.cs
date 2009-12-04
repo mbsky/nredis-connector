@@ -140,12 +140,11 @@
             long counter = 0;
             bool run = true;
             var evt = new ManualResetEvent(false);
-            using (var conn = RedisConnection.Connect("localhost", 6379))
+            using (var pool = new PipelinedCommandFactoryPool("localhost", 6379))
             {
-                var executor = new PipelinedCommandExecutor(conn);
-                var ts = new ParameterizedThreadStart((o) =>
+                var ts = new ThreadStart(() =>
                 {
-                    var f = new CommandFactory(executor);
+                    var f = pool.Get();
                     evt.WaitOne();
                     while (run)
                     {
@@ -158,7 +157,7 @@
                 for (int i = 0; i < 50; i++)
                 {
                     var t = new Thread(ts);
-                    t.Start(conn);
+                    t.Start();
                     workers.Add(t);
                 }
                 sw.Start();
