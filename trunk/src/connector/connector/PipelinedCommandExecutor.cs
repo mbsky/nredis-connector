@@ -49,7 +49,7 @@ namespace Connector
                 }
                 lock(_evts)
                 {
-                    if (!_evts.Any())
+                    if (!_evts.Any() && !_stopReading)
                     {
                         Monitor.Wait(_evts);
                     }
@@ -86,9 +86,9 @@ namespace Connector
         {
             if (_conn != null)
             {
-                _stopReading = true;
                 lock (_evts)
                 {
+                    _stopReading = true;
                     Monitor.Pulse(_evts);
                 }
                 _readThread.Join();
