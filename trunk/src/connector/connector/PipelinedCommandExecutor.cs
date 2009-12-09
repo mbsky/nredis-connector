@@ -19,23 +19,56 @@ namespace Connector
 
         private IRedisConnection _conn;
         private readonly RedisReader _reader;
-
+        private readonly Thread _readThread;
+        private bool _stopReading = false;
+        private object _writeLock = new object();
         public PipelinedCommandExecutor(IRedisConnection conn)
         {
             _conn = conn;
             _reader = new RedisReader(_conn.Reader);
+            _readThread = new Thread(ReadProcedure);
+            _readThread.Start();
+        }
+
+        private void ReadProcedure()
+        {
+            while(!_stopReading)
+            {
+                WaitPair evt = null;
+                lock(_evts)
+                {
+                    if (_evts.Any())
+                    {
+                        evt = _evts.Dequeue();
+                    }
+                }
+                if(evt != null)
+                {
+                    evt.Result = _reader.ReadAny();
+                    evt.ResultIsReady.Set();
+                }
+                lock(_evts)
+                {
+                    if (!_evts.Any())
+                    {
+                        Monitor.Wait(_evts);
+                    }
+                }
+
+            }
         }
 
         public IEnumerable<byte[]> ExecuteCommand(IRedisCommandBuilder builder)
         {
             var waitPair = new WaitPair();
-            lock (_evts)
+            lock(_writeLock)
             {
                 builder.FlushCommandTo(_conn.Writer);
-                _evts.Enqueue(waitPair);
-                var prevPair = _evts.Dequeue();
-                prevPair.Result = _reader.ReadAny();
-                prevPair.ResultIsReady.Set();
+                lock (_evts)
+                {
+                    _evts.Enqueue(waitPair);
+                    Monitor.Pulse(_evts);
+                }
             }
             waitPair.ResultIsReady.WaitOne();
             return waitPair.Result;
@@ -43,15 +76,9 @@ namespace Connector
 
         public void ExecuteCommandWithoutResult(IRedisCommandBuilder builder)
         {
-            lock (_evts)
+            lock (_writeLock)
             {
                 builder.FlushCommandTo(_conn.Writer);
-                if (_evts.Any())
-                {
-                    var prevPair = _evts.Dequeue();
-                    prevPair.Result = _reader.ReadAny();
-                    prevPair.ResultIsReady.Set();
-                }
             }
         }
 
@@ -59,6 +86,12 @@ namespace Connector
         {
             if (_conn != null)
             {
+                _stopReading = true;
+                lock (_evts)
+                {
+                    Monitor.Pulse(_evts);
+                }
+                _readThread.Join();
                 _conn.Dispose();
                 _conn = null;
             }
