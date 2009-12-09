@@ -12,6 +12,9 @@
         private Process _redisProc;
 
         const int TestTimeMs = 10000;
+
+        private const string _host = "localhost";
+
         [SetUp]
         public void Setup()
         {
@@ -37,7 +40,7 @@
                 sw1.Start();
                 while (sw1.ElapsedMilliseconds < TestTimeMs)
                 {
-                    using (var conn = RedisConnection.Connect("localhost", 6379))
+                    using (var conn = RedisConnection.Connect(_host, 6379))
                     {
                         var f = new CommandFactory(new NormalCommandExecutor(conn));
                         f.Set(Guid.NewGuid().ToString(), "bar").Exec();
@@ -50,7 +53,7 @@
                 
                 int count2 = 0;
                 sw2.Start();
-                using(var pool = new ConnectionPool("localhost", 6379))
+                using(var pool = new ConnectionPool(_host, 6379))
                 {
                     while (sw2.ElapsedMilliseconds < TestTimeMs)
                     {
@@ -73,7 +76,7 @@
         public void SetsPerSecond()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
-            using (var conn = RedisConnection.Connect("localhost", 6379))
+            using (var conn = RedisConnection.Connect(_host, 6379))
             {
                 var f = new CommandFactory(new NormalCommandExecutor(conn));
                 int count = 0;
@@ -101,7 +104,7 @@
             
             var ts = new ParameterizedThreadStart((o) =>
             {
-                using (var conn = RedisConnection.Connect("localhost", 6379))
+                using (var conn = RedisConnection.Connect(_host, 6379))
                 {
                     var f = new CommandFactory(new NormalCommandExecutor(conn));
                     evt.WaitOne();
@@ -129,18 +132,18 @@
             {
                 t.Join();
             }
-            Assert.Fail(String.Format("{0} Sets/Sec", counter * 1000.0 / sw.ElapsedMilliseconds));
+            Assert.Pass(String.Format("{0} Sets/Sec", counter * 1000.0 / sw.ElapsedMilliseconds));
 
         }
 
-        [Test, Ignore]
+        [Test]
         public void SetsPerSecondWith50ThreadsPipelined()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
             long counter = 0;
             bool run = true;
             var evt = new ManualResetEvent(false);
-            using (var pool = new PipelinedCommandFactoryPool("localhost", 6379))
+            using (var pool = new PipelinedCommandFactoryPool(_host, 6379))
             {
                 var ts = new ThreadStart(() =>
                 {
@@ -170,7 +173,7 @@
                     t.Join();
                 }
             }
-            Assert.Fail(String.Format("{0} Sets/Sec", counter * 1000.0 / sw.ElapsedMilliseconds));
+            Assert.Pass(String.Format("{0} Sets/Sec", counter * 1000.0 / sw.ElapsedMilliseconds));
             
         }
 
@@ -178,7 +181,7 @@
         public void GetsPerSecond()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
-            using (var conn = RedisConnection.Connect("localhost", 6379))
+            using (var conn = RedisConnection.Connect(_host, 6379))
             {
                 var f = new CommandFactory(new NormalCommandExecutor(conn));
                 int count = 0;
@@ -193,7 +196,7 @@
                 }
                 sw.Stop();
 
-                Assert.Fail(String.Format("{0} Sets/Sec", count * 1000.0 / sw.ElapsedMilliseconds));
+                Assert.Pass(String.Format("{0} Sets/Sec", count * 1000.0 / sw.ElapsedMilliseconds));
 
             }
         }
@@ -201,7 +204,7 @@
         public void RPushPerSecond()
         {
             System.Diagnostics.Stopwatch sw = new Stopwatch();
-            using (var conn = RedisConnection.Connect("localhost", 6379))
+            using (var conn = RedisConnection.Connect(_host, 6379))
             {
                 var f = new CommandFactory(new NormalCommandExecutor(conn));
                 int count = 0;

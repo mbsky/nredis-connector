@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Connector
 {
-    interface ICommandFactoryPool : IDisposable
+    public interface ICommandFactoryPool : IDisposable
     {
         CommandFactory Get();
     }
@@ -31,26 +31,44 @@ namespace Connector
     }
     public class PipelinedCommandFactoryPool : ICommandFactoryPool
     {
-        private readonly RedisConnection _conn;
+        private readonly ConnectionPool _pool;
 
-        private readonly PipelinedCommandExecutor _pipelinedExecutor;
+        private readonly PipelinedCommandExecutor[] _pipelinedExecutor;
 
-        public PipelinedCommandFactoryPool(string host, int port)
+        private int _roundRobinCounter = 0;
+
+        public PipelinedCommandFactoryPool(string host, int port) : this(host, port, 1)
         {
-            _conn = RedisConnection.Connect(host, port);
-            _pipelinedExecutor = new PipelinedCommandExecutor(_conn);
+        }
+
+        public PipelinedCommandFactoryPool(string host, int port, int executorsCount)
+        {
+            _pool = new ConnectionPool(host, port);
+            _pipelinedExecutor =
+                Enumerable.Range(0, executorsCount).Select(q => new PipelinedCommandExecutor(_pool.GetConnection())).
+                    ToArray();
         }
 
         public CommandFactory Get()
         {
-            return new CommandFactory(_pipelinedExecutor);
+            lock (this)
+            {
+                var executor = _pipelinedExecutor[_roundRobinCounter++];
+                if(_roundRobinCounter >= _pipelinedExecutor.Length)
+                {
+                    _roundRobinCounter = 0;
+                }
+                return new CommandFactory(executor);
+            }
         }
 
         public void Dispose()
         {
-            _pipelinedExecutor.Dispose();
-            _conn.Dispose();
-
+            foreach(var exec in _pipelinedExecutor)
+            {
+                exec.Dispose();
+            }
+            _pool.Dispose();
         }
     }
 }
