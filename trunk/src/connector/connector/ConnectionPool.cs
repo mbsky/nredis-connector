@@ -10,7 +10,8 @@ namespace Connector
         private string _host;
         private int _port;
 
-        private Stack<RedisConnection> _pooledConnections = new Stack<RedisConnection>();
+        private Stack<RedisConnection> _availableConnections = new Stack<RedisConnection>();
+        private Stack<RedisConnection> _requestedConnections = new Stack<RedisConnection>();
 
         public ConnectionPool(string host, int port)
         {
@@ -21,16 +22,17 @@ namespace Connector
         public IRedisConnection GetConnection()
         {
             RedisConnection conn = null;
-            lock (_pooledConnections)
+            lock (this._availableConnections)
             {
-                if (_pooledConnections.Any())
+                if (this._availableConnections.Any())
                 {
-                    conn = _pooledConnections.Pop();
+                    conn = this._availableConnections.Pop();
                 }
                 else
                 {
                     conn = RedisConnection.Connect(_host, _port);
                 }
+                _requestedConnections.Push(conn);
             }
             return new PooledRedisConnection(conn, ReturnConnectionCallback);
             
@@ -38,14 +40,14 @@ namespace Connector
 
         private void ReturnConnectionCallback(RedisConnection connection)
         {
-            _pooledConnections.Push(connection);
+            this._availableConnections.Push(connection);
         }
 
         #region IDisposable Members
 
         public void Dispose()
         {
-            foreach (var conn in _pooledConnections)
+            foreach (var conn in this._availableConnections.Union(_requestedConnections))
             {
                 conn.Dispose();
                 GC.SuppressFinalize(conn);
@@ -54,6 +56,7 @@ namespace Connector
 
         #endregion
     }
+
     class PooledRedisConnection : IRedisConnection
     {
         Action<RedisConnection> _callback;
