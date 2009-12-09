@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using NUnit.Framework;
 
@@ -31,12 +32,13 @@ namespace Connector.Tests
         {
             private BinaryReader _reader;
             private BinaryWriter _writer;
+            private LoopbackStream _stream;
 
             public LoopbackConnection()
             {
-                var stream = new LoopbackStream();
-                _writer = new BinaryWriter(stream);
-                _reader = new BinaryReader(stream);
+                _stream = new LoopbackStream();
+                _writer = new BinaryWriter(_stream);
+                _reader = new BinaryReader(_stream);
             }
 
             #region IRedisConnection Members
@@ -60,6 +62,16 @@ namespace Connector.Tests
             {
             }
 
+            public byte[] GetBuffer()
+            {
+                return _stream.GetBuffer();
+            }
+
+            public void WriteResponce()
+            {
+                _stream.WriteResponce();
+            }
+
             #endregion
         }
 
@@ -70,6 +82,7 @@ namespace Connector.Tests
         private class LoopbackStream : Stream
         {
             private readonly Queue<byte> _data = new Queue<byte>();
+            private readonly ManualResetEvent _evt = new ManualResetEvent(false);
 
             public override bool CanRead
             {
@@ -113,6 +126,8 @@ namespace Connector.Tests
 
             public override int Read(byte[] buffer, int offset, int count)
             {
+                _evt.WaitOne();
+
                 for (int i = 0; i < count; i++)
                 {
                     lock (_data)
@@ -133,11 +148,20 @@ namespace Connector.Tests
                     }
                 }
             }
+            public void WriteResponce()
+            {
+                _evt.Set();
+            }
+            public byte[] GetBuffer()
+            {
+                return _data.ToArray();
+            }
+        
         }
 
         #endregion
-        
-        [Test]
+
+        [Test, Timeout(5000)]
         public void TwoSimultaneiousWritesReadsInSameOrder()
         {
             var b1 = new RedisInlineCommandBuilder();
@@ -145,7 +169,9 @@ namespace Connector.Tests
             b1.SetCommand(":1");
             b2.SetCommand(":2");
 
-            var executor = new PipelinedCommandExecutor(new LoopbackConnection());
+            var loopbackConnection = new LoopbackConnection();
+            loopbackConnection.WriteResponce();
+            var executor = new PipelinedCommandExecutor(loopbackConnection);
 
             int result = 0;
 
@@ -158,7 +184,38 @@ namespace Connector.Tests
             t1.Join();
             t2.Join();
 
+            executor.Dispose();
+
             Assert.That(result, Is.EqualTo(1));
+        }
+        
+        [Test, Timeout(1000)]
+        public void IfResponseIsBlockedThenNextCommandWillWrite()
+        {
+            var b1 = new RedisInlineCommandBuilder();
+            var b2 = new RedisInlineCommandBuilder();
+            b1.SetCommand(":1");
+            b2.SetCommand(":2");
+
+            var loopbackConnection = new LoopbackConnection();
+            var executor = new PipelinedCommandExecutor(loopbackConnection);
+
+            var t1 = new Thread(() => executor.ExecuteCommand(b1));
+            var t2 = new Thread(() => executor.ExecuteCommand(b2));
+
+            t1.Start();
+            t2.Start();
+
+            Thread.Sleep(100);
+            var str = Encoding.ASCII.GetString(loopbackConnection.GetBuffer());
+            loopbackConnection.WriteResponce();
+
+            t1.Join();
+            t2.Join();
+
+            executor.Dispose();
+
+            Assert.That(str, Is.EqualTo(":1\r\n:2\r\n"));
         }
 
     }
