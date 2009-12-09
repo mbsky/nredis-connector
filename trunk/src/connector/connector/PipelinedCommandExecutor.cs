@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Connector
@@ -7,53 +8,51 @@ namespace Connector
 
     public class PipelinedCommandExecutor : IComandExecutor
     {
-        private object _evtLock = new object();
-        private object _readLock = new object();
-        private Queue<AutoResetEvent> _evts = new Queue<AutoResetEvent>();
-        private AutoResetEvent _ignoredResult = new AutoResetEvent(false);
+        class WaitPair
+        {
+            public AutoResetEvent ResultIsReady = new AutoResetEvent(false);
+            public IEnumerable<byte[]> Result;
+
+        }
+
+        private readonly Queue<WaitPair> _evts = new Queue<WaitPair>();
 
         private IRedisConnection _conn;
+        private readonly RedisReader _reader;
 
         public PipelinedCommandExecutor(IRedisConnection conn)
         {
             _conn = conn;
+            _reader = new RedisReader(_conn.Reader);
         }
 
         public IEnumerable<byte[]> ExecuteCommand(IRedisCommandBuilder builder)
         {
-            var resultIsReady = Exec(builder);
-            resultIsReady.WaitOne();
-            return ReadAny();
-        }
-
-        private IEnumerable<byte[]> ReadAny()
-        {
-            lock (_readLock)
-            {
-                var reader = new RedisReader(_conn.Reader);
-                return reader.ReadAny();
-            }
-        }
-
-        private AutoResetEvent Exec(IRedisCommandBuilder builder)
-        {
-            var evt = new AutoResetEvent(false);
-            AutoResetEvent prevEvt = null;
-            lock (_evtLock)
+            var waitPair = new WaitPair();
+            lock (_evts)
             {
                 builder.FlushCommandTo(_conn.Writer);
-                _evts.Enqueue(evt);
-                prevEvt = _evts.Dequeue();
+                _evts.Enqueue(waitPair);
+                var prevPair = _evts.Dequeue();
+                prevPair.Result = _reader.ReadAny();
+                prevPair.ResultIsReady.Set();
             }
-
-            prevEvt.Set();
-            return evt;
+            waitPair.ResultIsReady.WaitOne();
+            return waitPair.Result;
         }
 
         public void ExecuteCommandWithoutResult(IRedisCommandBuilder builder)
         {
-            var resultIsReady = Exec(builder);
-            resultIsReady.WaitOne();
+            lock (_evts)
+            {
+                builder.FlushCommandTo(_conn.Writer);
+                if (_evts.Any())
+                {
+                    var prevPair = _evts.Dequeue();
+                    prevPair.Result = _reader.ReadAny();
+                    prevPair.ResultIsReady.Set();
+                }
+            }
         }
 
         public void Dispose()
