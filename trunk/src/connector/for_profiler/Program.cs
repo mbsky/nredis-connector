@@ -58,8 +58,12 @@
             var sw = new Stopwatch();
             sw.Start();
             evt.Set();
-            Thread.Sleep(5000);
-            run = false;
+            for (int i = 0; i < 5; i++ )
+            {
+                Thread.Sleep(1000);
+                Console.Write(".");
+            }
+                run = false;
             sw.Stop();
             foreach (var t in workers)
             {
